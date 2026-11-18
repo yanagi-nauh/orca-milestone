@@ -6,11 +6,16 @@ import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { offersOf } from './next-actions.mjs'
 
-/** The CLI bundled with the Orca app that runs this worker, else `orca` on PATH. */
-export function resolveOrcaCli(execPath = process.execPath) {
-  // The worker runs Orca's own binary as Node: Orca.app/Contents/MacOS/Orca.
-  const bundled = join(dirname(execPath), '..', 'Resources', 'bin', 'orca')
-  return existsSync(bundled) ? bundled : 'orca'
+/** The CLI bundled with the Orca app that runs this worker, else the one on PATH. */
+export function resolveOrcaCli(execPath = process.execPath, platform = process.platform) {
+  // The worker runs Orca's own binary as Node: Orca.app/Contents/MacOS/Orca on macOS, orca-ide at
+  // the top of the app on Linux. There Orca names its CLI orca-ide, because `orca` on PATH is
+  // usually the GNOME screen reader.
+  const [bundled, onPath] =
+    platform === 'linux'
+      ? [join(dirname(execPath), 'resources', 'bin', 'orca-ide'), 'orca-ide']
+      : [join(dirname(execPath), '..', 'Resources', 'bin', 'orca'), 'orca']
+  return existsSync(bundled) ? bundled : onPath
 }
 
 export function runOrca(cli, args, timeout = 10_000) {
